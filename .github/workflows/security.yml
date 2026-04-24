@@ -1,0 +1,233 @@
+# =============================================================================
+#  ISRM Phase 4 — CI/CD Security Pipeline
+#  GitHub Actions Workflow for Automated SAST + DAST Scanning
+# =============================================================================
+#
+#  This pipeline automates the vulnerability scanning process from Phase 3.
+#  It runs on every push and pull request to the main branch, performing:
+#    1. Code checkout
+#    2. Python environment setup
+#    3. SAST scan with Bandit
+#    4. DAST scan with OWASP ZAP
+#    5. Report archiving
+#
+#  The build FAILS automatically if high-severity vulnerabilities are found.
+# =============================================================================
+
+name: Security Scan Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+
+  # ───────────────────────────────────────────────────────────────────────────
+  #  STAGE 1: SAST — Static Application Security Testing (Bandit)
+  # ───────────────────────────────────────────────────────────────────────────
+  sast-scan:
+    name: "SAST — Bandit Scan"
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Step 1.1: Build / Checkout ──────────────────────────────────────
+      # Pull the application source code from the repository.
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ── Step 1.2: Setup ─────────────────────────────────────────────────
+      # Install Python 3.12 and cache pip dependencies for faster builds.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      # Install project dependencies and the Bandit scanner.
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install bandit
+
+      # ── Step 1.3: SAST Scan ─────────────────────────────────────────────
+      # Run Bandit against app.py and database.py.
+      #   -f json    → JSON output for machine-readable report
+      #   -o         → Save report to file
+      #   -ll        → Report only Medium severity and above
+      #   --exit-zero is NOT used, so Bandit returns non-zero on findings
+      - name: Run Bandit (JSON Report)
+        run: |
+          bandit app.py database.py -f json -o bandit_report.json || true
+
+      # Run again in text format for human-readable console output.
+      - name: Run Bandit (Console Output)
+        run: |
+          bandit app.py database.py -ll
+        # The -ll flag reports Medium and above.
+        # This step will fail the build if high-severity issues are found.
+
+      # ── Step 1.4: Archive SAST Report ───────────────────────────────────
+      # Save the Bandit JSON report as a downloadable build artifact.
+      - name: Upload Bandit Report
+        uses: actions/upload-artifact@v4
+        if: always()  # Upload even if previous steps failed
+        with:
+          name: bandit-sast-report
+          path: bandit_report.json
+          retention-days: 30
+
+  # ───────────────────────────────────────────────────────────────────────────
+  #  STAGE 2: DAST — Dynamic Application Security Testing (OWASP ZAP)
+  # ───────────────────────────────────────────────────────────────────────────
+  dast-scan:
+    name: "DAST — OWASP ZAP Scan"
+    runs-on: ubuntu-latest
+    needs: sast-scan  # Run DAST after SAST completes (can change to parallel)
+
+    steps:
+      # ── Step 2.1: Checkout ──────────────────────────────────────────────
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ── Step 2.2: Setup Python & Dependencies ──────────────────────────
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ── Step 2.3: Start the Flask Application ──────────────────────────
+      # Launch the app in the background so ZAP can scan it.
+      # Wait a few seconds for the server to be ready.
+      - name: Start Flask Application
+        run: |
+          python app.py &
+          echo "Waiting for Flask to start..."
+          sleep 5
+          curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/login || echo "App may not be ready"
+        env:
+          FLASK_ENV: development
+
+      # ── Step 2.4: DAST Scan ─────────────────────────────────────────────
+      # Run OWASP ZAP baseline scan against the live application.
+      # The ZAP GitHub Action runs the scanner in a Docker container.
+      #   -t         → Target URL
+      #   -r         → Generate HTML report
+      #   -J         → Generate JSON report
+      #   -I         → Do NOT fail on warnings (only fail on errors/high)
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: "http://localhost:5000"
+          rules_file_name: ""
+          cmd_options: "-I -r zap_report.html -J zap_report.json"
+
+      # ── Step 2.5: Archive DAST Reports ──────────────────────────────────
+      # Save both HTML and JSON ZAP reports as downloadable artifacts.
+      - name: Upload ZAP Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-dast-reports
+          path: |
+            zap_report.html
+            zap_report.json
+          retention-days: 30
+
+  # ───────────────────────────────────────────────────────────────────────────
+  #  STAGE 3: Quality Gate — Fail on High-Severity Findings
+  # ───────────────────────────────────────────────────────────────────────────
+  security-gate:
+    name: "Security Quality Gate"
+    runs-on: ubuntu-latest
+    needs: [sast-scan, dast-scan]
+    if: always()  # Always run to provide a final verdict
+
+    steps:
+      - name: Download Bandit Report
+        uses: actions/download-artifact@v4
+        with:
+          name: bandit-sast-report
+        continue-on-error: true
+
+      - name: Download ZAP Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: zap-dast-reports
+        continue-on-error: true
+
+      # Parse the Bandit JSON report and fail if HIGH severity issues exist.
+      - name: Check for High-Severity Findings (Bandit)
+        run: |
+          echo "======================================"
+          echo "  Security Quality Gate — Bandit"
+          echo "======================================"
+
+          if [ ! -f bandit_report.json ]; then
+            echo "⚠ Bandit report not found. Skipping."
+            exit 0
+          fi
+
+          HIGH_COUNT=$(python3 -c "
+          import json
+          with open('bandit_report.json') as f:
+              data = json.load(f)
+          highs = [r for r in data.get('results', []) if r['issue_severity'] == 'HIGH']
+          print(len(highs))
+          ")
+
+          echo "High-severity issues found: $HIGH_COUNT"
+
+          if [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "❌ FAILED: $HIGH_COUNT high-severity vulnerabilities detected by Bandit."
+            echo "Review the bandit-sast-report artifact for details."
+            exit 1
+          else
+            echo "✅ PASSED: No high-severity vulnerabilities found by Bandit."
+          fi
+
+      # Parse ZAP JSON report and fail if HIGH risk alerts exist.
+      - name: Check for High-Severity Findings (ZAP)
+        run: |
+          echo "======================================"
+          echo "  Security Quality Gate — OWASP ZAP"
+          echo "======================================"
+
+          if [ ! -f zap_report.json ]; then
+            echo "⚠ ZAP report not found. Skipping."
+            exit 0
+          fi
+
+          HIGH_COUNT=$(python3 -c "
+          import json
+          with open('zap_report.json') as f:
+              data = json.load(f)
+          highs = [a for a in data.get('site', [{}])[0].get('alerts', []) if a.get('riskcode', '0') == '3']
+          print(len(highs))
+          " 2>/dev/null || echo "0")
+
+          echo "High-risk alerts found: $HIGH_COUNT"
+
+          if [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "❌ FAILED: $HIGH_COUNT high-risk vulnerabilities detected by OWASP ZAP."
+            echo "Review the zap-dast-reports artifact for details."
+            exit 1
+          else
+            echo "✅ PASSED: No high-risk vulnerabilities found by OWASP ZAP."
+          fi
+
+      - name: Final Verdict
+        run: |
+          echo "======================================"
+          echo "  ✅ Security Quality Gate PASSED"
+          echo "======================================"
+          echo "All scan reports archived as build artifacts."

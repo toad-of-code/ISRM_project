@@ -1,0 +1,15 @@
+Role: You are a Security Analyst and an expert in Static and Dynamic Application Security Testing (SAST/DAST).
+
+Task: We are now moving to Phase 3 of the ISRM project: Vulnerability Assessment. I need you to run automated security scans on the Python web application code we just generated.
+
+Requirements:
+1. Execute Bandit (Python security scanner) in the terminal against the application source code (e.g., app.py and database.py) to perform Static Application Security Testing (SAST).
+2. Execute or provide the exact setup to run OWASP ZAP against the live application to perform Dynamic Application Security Testing (DAST).
+3. Analyze the output reports from both Bandit and OWASP ZAP.
+4. Assign an appropriate CVSS 3.1 base score and Severity classification for each vulnerability found by the tools.
+
+Deliverable:
+Generate a vulnerability assessment report based on the tools' findings, formatted strictly as the following CSV-style table:
+Vulnerability,Description,CVSS Score,Severity
+
+Please provide the final table and a brief summary of the terminal outputs from the scans.

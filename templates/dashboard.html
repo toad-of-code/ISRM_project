@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Student Management System - Dashboard">
+    <title>Dashboard — Student Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+        .navbar {
+            background-color: #161b22 !important;
+            border-bottom: 1px solid #30363d;
+        }
+        .navbar-brand {
+            color: #58a6ff !important;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .nav-link {
+            color: #8b949e !important;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #e6edf3 !important;
+        }
+        .card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+        }
+        .table {
+            color: #e6edf3;
+        }
+        .table thead th {
+            background-color: #21262d;
+            border-color: #30363d;
+            color: #8b949e;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+        .table td {
+            border-color: #21262d;
+            vertical-align: middle;
+        }
+        .table-hover tbody tr:hover {
+            background-color: #1c2128;
+        }
+        .form-control {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+        }
+        .form-control:focus {
+            background-color: #0d1117;
+            border-color: #58a6ff;
+            color: #e6edf3;
+            box-shadow: 0 0 0 0.2rem rgba(88, 166, 255, 0.25);
+        }
+        .btn-outline-info {
+            border-color: #58a6ff;
+            color: #58a6ff;
+        }
+        .btn-outline-info:hover {
+            background-color: #58a6ff;
+            color: #0d1117;
+        }
+        .badge-role {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        .page-header {
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">SMS</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload">Upload</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/download">Files</a>
+                    </li>
+                    {% if user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/tools">Admin Tools</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <span class="text-secondary">Logged in as</span>
+                            <strong>{{ user.username }}</strong>
+                            <span class="badge badge-role {% if user.role == 'admin' %}bg-danger{% else %}bg-info{% endif %}">
+                                {{ user.role }}
+                            </span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="/logout">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show py-2" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <h1 class="h4 mb-0">
+                {% if user.role == 'admin' %}
+                    All Student Records
+                {% else %}
+                    My Academic Record
+                {% endif %}
+            </h1>
+
+            {% if user.role == 'admin' %}
+            <div class="d-flex gap-2">
+                <form method="GET" action="/dashboard" class="d-flex" style="max-width: 350px;">
+                    <input type="text" class="form-control me-2" name="search" 
+                           placeholder="Search students..." value="{{ search_query }}">
+                    <button type="submit" class="btn btn-outline-info">Search</button>
+                </form>
+                <a href="/admin/students/add" class="btn btn-success"> Add Student</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="card-body p-0">
+                {% if students|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Roll Number</th>
+                                <th>Department</th>
+                                <th>Semester</th>
+                                <th>CGPA</th>
+                                {% if user.role == 'admin' %}
+                                <th>Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td class="text-secondary">{{ loop.index }}</td>
+                                <td>{{ student.name }}</td>
+                                <td><code>{{ student.roll_number }}</code></td>
+                                <td>{{ student.department }}</td>
+                                <td>{{ student.semester }}</td>
+                                <td>
+                                    <span class="badge {% if student.cgpa >= 8.5 %}bg-success{% elif student.cgpa >= 7.0 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                        {{ student.cgpa }}
+                                    </span>
+                                </td>
+                                {% if user.role == 'admin' %}
+                                <td>
+                                    <a href="/admin/students/edit/{{ student.id }}" class="btn btn-sm btn-outline-info me-1" title="Edit">
+                                        Edit
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="Delete"
+                                            onclick="confirmDelete({{ student.id }}, '{{ student.name }}')">
+                                        Delete
+                                    </button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-secondary py-5">
+                    <p class="mb-0">No records found.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    {% if user.role == 'admin' %}
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background-color: #161b22; border: 1px solid #30363d;">
+                <div class="modal-header" style="border-bottom: 1px solid #30363d;">
+                    <h5 class="modal-title text-danger">⚠️ Confirm Delete</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong id="deleteStudentName"></strong>?</p>
+                    <p class="text-secondary mb-0">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #30363d;">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteForm" method="POST">
+                        <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% if user.role == 'admin' %}
+    <script>
+        function confirmDelete(studentId, studentName) {
+            document.getElementById('deleteStudentName').textContent = studentName;
+            document.getElementById('deleteForm').action = '/admin/students/delete/' + studentId;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

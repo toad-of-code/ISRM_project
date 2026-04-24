@@ -1,0 +1,38 @@
+**Role:** You are an expert Python developer assisting with an academic Information Security Risk Management (ISRM) project. 
+
+[cite_start]**Task:** I need you to develop a deliberately vulnerable web-based Student Management System[cite: 11, 41]. [cite_start]This application will be used as a target for vulnerability assessment, threat modeling, and a simulated multi-stage cyber attack[cite: 13, 15]. 
+
+**Technology Stack:**
+* [cite_start]Backend: Python using the Flask framework[cite: 172].
+* Database: SQLite (for easy local setup and testing).
+* Frontend: HTML/CSS (use a lightweight framework like Bootstrap).
+
+**UI/UX Requirements:**
+* The UI must be simple and clean. 
+* Avoid complex front-end logic; stick to minimalistic, functional, and easy-to-read pages.
+
+**Functional Requirements:**
+1. [cite_start]**User Authentication:** A system for users to log in and sign up[cite: 151].
+2. [cite_start]**Role-Based Access:** Support for two user roles: "Student" and "Admin"[cite: 152].
+3. **Student Dashboard:** A page where students can view their academic records and where Admins can view all student records.
+4. [cite_start]**File Upload Module:** A feature allowing students to upload "assignment" files to the server[cite: 42, 154].
+
+**Security Requirements (INTENTIONAL VULNERABILITIES):**
+This is the most critical part. [cite_start]You **MUST** intentionally introduce the following vulnerabilities into the codebase to support our planned attack pipelines[cite: 45]. Do NOT write secure code for these specific areas:
+
+* [cite_start]**Vulnerability 1: SQL Injection.** The login authentication and the database search queries must use concatenated strings (e.g., f-strings) instead of parameterized queries[cite: 115, 156].
+* [cite_start]**Vulnerability 2: Broken Authentication / Brute Force.** Do not implement account lockouts, rate limiting, or CAPTCHAs on the login endpoint[cite: 115].
+* [cite_start]**Vulnerability 3: Insecure File Upload.** The file upload module must NOT validate file extensions or MIME types, and it must save files directly to a publicly accessible directory, allowing Remote Code Execution (RCE)[cite: 115].
+* **Vulnerability 4: Privilege Escalation & Business Logic Flaw.** Implement a flawed role-check. [cite_start]For example, determine user roles based on an easily manipulated hidden form field, a plaintext cookie, or a URL parameter (e.g., `?role=admin`)[cite: 115].
+* [cite_start]**Vulnerability 5: Command Injection.** Include a feature (like a "System Ping" or "Server Status" tool for Admins) that takes user input and passes it directly to `os.system()` or `subprocess` without sanitization[cite: 115].
+* [cite_start]**Vulnerability 6: Session Hijacking.** Use weak, predictable session IDs or store session states entirely in unsigned, plaintext client-side cookies[cite: 115].
+* [cite_start]**Vulnerability 7: Path Traversal.** Create a file download or viewing endpoint (e.g., `/download?file=...`) that does not sanitize `../` sequences, allowing access to files outside the intended directory[cite: 115].
+* [cite_start]**Vulnerability 8: Information Disclosure.** Ensure `debug=True` is enabled in Flask so that verbose error messages and stack traces are exposed to the user[cite: 115].
+* [cite_start]**Vulnerability 9: Sensitive Data Exposure / No Logging.** Store user passwords in plaintext in the database (no hashing) and do not implement any logging for database transactions[cite: 115].
+
+**Deliverables Required:**
+Please provide the complete application structure, including:
+1. `app.py` (Main Flask application routing and logic).
+2. `database.py` (Script to initialize the SQLite database and seed it with dummy data/users).
+3. The HTML templates (`login.html`, `dashboard.html`, `upload.html`) focusing on a clean, simple UI.
+4. `requirements.txt` file.

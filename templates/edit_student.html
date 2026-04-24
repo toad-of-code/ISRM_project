@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Student Management System - Edit Student">
+    <title>Edit Student — Student Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+        .navbar {
+            background-color: #161b22 !important;
+            border-bottom: 1px solid #30363d;
+        }
+        .navbar-brand {
+            color: #58a6ff !important;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .nav-link {
+            color: #8b949e !important;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #e6edf3 !important;
+        }
+        .card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+        }
+        .form-control, .form-select {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #0d1117;
+            border-color: #58a6ff;
+            color: #e6edf3;
+            box-shadow: 0 0 0 0.2rem rgba(88, 166, 255, 0.25);
+        }
+        .btn-primary {
+            background-color: #1f6feb;
+            border-color: #1f6feb;
+        }
+        .btn-primary:hover {
+            background-color: #388bfd;
+            border-color: #388bfd;
+        }
+        .btn-outline-secondary {
+            border-color: #30363d;
+            color: #8b949e;
+        }
+        .btn-outline-secondary:hover {
+            background-color: #21262d;
+            border-color: #8b949e;
+            color: #e6edf3;
+        }
+        .page-header {
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .badge-role {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">SMS</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload">Upload</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/download">Files</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/tools">Admin Tools</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <span class="text-secondary">Logged in as</span>
+                            <strong>{{ user.username }}</strong>
+                            <span class="badge badge-role bg-danger">{{ user.role }}</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="/logout">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show py-2" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <h1 class="h4 mb-0"> Edit Student — {{ student.name }}</h1>
+            <a href="/dashboard" class="btn btn-outline-secondary btn-sm">← Back to Dashboard</a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="/admin/students/edit/{{ student.id }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label text-secondary">Full Name *</label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                   value="{{ student.name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="roll_number" class="form-label text-secondary">Roll Number *</label>
+                            <input type="text" class="form-control" id="roll_number" name="roll_number"
+                                   value="{{ student.roll_number }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="department" class="form-label text-secondary">Department *</label>
+                            <select class="form-select" id="department" name="department" required>
+                                <option value="">Select Department</option>
+                                <option value="Computer Science" {% if student.department == 'Computer Science' %}selected{% endif %}>Computer Science</option>
+                                <option value="Electronics" {% if student.department == 'Electronics' %}selected{% endif %}>Electronics</option>
+                                <option value="Mechanical" {% if student.department == 'Mechanical' %}selected{% endif %}>Mechanical</option>
+                                <option value="Information Technology" {% if student.department == 'Information Technology' %}selected{% endif %}>Information Technology</option>
+                                <option value="Civil" {% if student.department == 'Civil' %}selected{% endif %}>Civil</option>
+                                <option value="Electrical" {% if student.department == 'Electrical' %}selected{% endif %}>Electrical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="semester" class="form-label text-secondary">Semester *</label>
+                            <input type="number" class="form-control" id="semester" name="semester"
+                                   min="1" max="8" value="{{ student.semester }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cgpa" class="form-label text-secondary">CGPA</label>
+                            <input type="number" class="form-control" id="cgpa" name="cgpa"
+                                   step="0.1" min="0" max="10" value="{{ student.cgpa }}">
+                        </div>
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary px-4">
+                                 Save Changes
+                            </button>
+                            <a href="/dashboard" class="btn btn-outline-secondary ms-2">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

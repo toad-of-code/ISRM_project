@@ -138,7 +138,9 @@ jobs:
         if: always()
         with:
           name: zap-dast-reports
-          path: report_html.html
+          path: |
+            report_html.html
+            report_json.json
           retention-days: 30
 
   # ───────────────────────────────────────────────────────────────────────────
@@ -200,14 +202,14 @@ jobs:
           echo "  Security Quality Gate — OWASP ZAP"
           echo "======================================"
 
-          if [ ! -f zap_report.json ]; then
+          if [ ! -f report_json.json ]; then
             echo "⚠ ZAP report not found. Skipping."
             exit 0
           fi
 
           HIGH_COUNT=$(python3 -c "
           import json
-          with open('zap_report.json') as f:
+          with open('report_json.json') as f:
               data = json.load(f)
           highs = [a for a in data.get('site', [{}])[0].get('alerts', []) if a.get('riskcode', '0') == '3']
           print(len(highs))

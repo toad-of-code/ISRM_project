@@ -39,6 +39,14 @@ from database import get_connection, init_db
 app = Flask(__name__)
 app.secret_key = "supersecretkey123"  # Weak secret key
 
+
+def csrf_token():
+    """Compatibility helper so templates using csrf_token() also work in app.py."""
+    return ""
+
+
+app.jinja_env.globals["csrf_token"] = csrf_token
+
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
